@@ -1,0 +1,41 @@
+{
+  "name": "uniprae",
+  "version": "2.2.0",
+  "description": "Universal MCP server for Adobe Premiere Pro and After Effects automation",
+  "main": "dist/index.js",
+  "bin": {
+    "uniprae": "dist/index.js",
+    "aftereffects-mcp": "dist/index.js",
+    "adobe-mcp": "dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "build:exe": "node build-exe.js",
+    "package": "node build-release.js",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "after-effects",
+    "premiere-pro",
+    "universal-adobe",
+    "adobe",
+    "motion-graphics",
+    "animation",
+    "extendscript",
+    "model-context-protocol"
+  ],
+  "author": "Antigravity AI",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

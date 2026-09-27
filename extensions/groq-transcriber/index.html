@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uniprae Transcriber</title>
+    <script>if(location.search.indexOf('embedded=1')!==-1){document.documentElement.className='embedded';}</script>
+    <script src="./lib/CSInterface.js"></script>
+    <script src="./uniprae-config.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #222225;
+            color: #d8d8de;
+            padding: 12px;
+            font-size: 11px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #323238;
+        }
+
+        .title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .title svg {
+            color: #3b82f6;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            background: #2a2a30;
+            border: 1px solid #3c3c46;
+            color: #aaa;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: #fff;
+            border-color: #555566;
+            background: #34343d;
+        }
+
+        .badge {
+            font-size: 9px;
+            background: #2563eb;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .control-group {
+            margin-bottom: 8px;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #9ca3af;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        label .hint {
+            font-size: 9px;
+            color: #60a5fa;
+            font-weight: normal;
+            text-transform: none;
+        }
+
+        select, input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: #18181c;
+            color: #eee;
+            border: 1px solid #383842;
+            border-radius: 4px;
+            font-size: 11px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-transcribe {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-transcribe:hover:not(:disabled) {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-transcribe:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-transcribe:disabled {
+            background: #33333d;
+            color: #777788;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .status-card {
+            margin-top: 10px;
+            background: #161619;
+            border: 1px solid #282830;
+            border-radius: 5px;
+            padding: 8px 10px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 10px;
+            min-height: 65px;
+            max-height: 120px;
+            overflow-y: auto;
+            color: #9ca3af;
+            line-height: 1.45;
+        }
+
+        .status-card .highlight { color: #10b981; font-weight: bold; }
+        .status-card .error { color: #ef4444; font-weight: bold; }
+        .status-card .active { color: #60a5fa; }
+        .status-card .info { color: #d1d5db; }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Settings Drawer */
+        .settings-drawer {
+            display: none;
+            background: #1a1a20;
+            border: 1px solid #343440;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .settings-drawer.open {
+            display: block;
+        }
+
+        .settings-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .close-link {
+            font-size: 10px;
+            color: #9ca3af;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+    <style>
+        :root { --bg:#090c14; --panel:#111725; --panel2:#171e2e; --line:#28334a; --text:#f5f7fb; --muted:#8d9ab0; --blue:#6d7cff; --cyan:#29d3c2; }
+        body { background: radial-gradient(circle at 100% 0,rgba(109,124,255,.16),transparent 35%),var(--bg); color:var(--text); padding:16px; }
+        .header { margin:-16px -16px 14px; padding:15px 16px; border-bottom:1px solid var(--line); background:rgba(11,15,25,.92); }
+        .title { font-size:14px; letter-spacing:-.01em; }
+        .title svg { color:var(--cyan); }
+        .badge { background:linear-gradient(135deg,var(--blue),#8b5cf6); border-radius:999px; padding:4px 8px; }
+        .brand-intro { background:linear-gradient(135deg,rgba(109,124,255,.16),rgba(41,211,194,.08)); border:1px solid #33405a; border-radius:12px; padding:12px; margin-bottom:12px; }
+        .brand-intro strong { display:block; font-size:13px; margin-bottom:4px; }
+        .brand-intro p { color:var(--muted); line-height:1.5; }
+        .compat { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
+        .compat span { background:#1d2638; border:1px solid #33405a; border-radius:999px; padding:3px 7px; color:#cbd5e1; font-size:9px; }
+        .control-group,.grid-2 { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:9px; }
+        .grid-2 .control-group { background:transparent; border:0; padding:0; margin:0; }
+        label { color:#aeb9ca; }
+        select,input[type="text"],input[type="password"] { background:#0b101b; border-color:#303c55; border-radius:7px; min-height:32px; }
+        select:focus,input:focus { border-color:var(--blue); box-shadow:0 0 0 2px rgba(109,124,255,.18); }
+        .btn-transcribe { min-height:42px; border-radius:10px; background:linear-gradient(135deg,#6577ff,#7c3aed); box-shadow:0 10px 24px rgba(77,70,229,.25); }
+        .status-card { background:#080b12; border-color:var(--line); border-radius:10px; min-height:88px; }
+        .settings-drawer { background:var(--panel2); border-color:#39445c; border-radius:10px; box-shadow:0 14px 30px rgba(0,0,0,.28); }
+        .plugin-footer { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); color:#778399; text-align:center; font-size:9px; line-height:1.6; }
+        .plugin-footer b { color:#cbd5e1; }
+        html.embedded body { background:#10100f; padding:13px; }
+        html.embedded .header,html.embedded .brand-intro,html.embedded .plugin-footer { display:none; }
+        html.embedded .control-group,html.embedded .grid-2 { background:#191917; border-color:#383732; border-radius:0; }
+        html.embedded select,html.embedded input[type="text"],html.embedded input[type="password"] { background:#10100f; border-color:#45433d; border-radius:0; }
+        html.embedded .btn-transcribe { background:#ff6846; color:#17120f; border-radius:0; box-shadow:none; }
+        html.embedded .status-card { border-radius:0; background:#090908; border-color:#383732; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+            Uniprae Transcriber
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="btnSettings" title="API Key & Settings">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+            <button class="icon-btn" id="btnReload" title="Reload panel">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+            </button>
+            <div class="badge">Word-By-Word</div>
+        </div>
+    </div>
+
+    <div class="brand-intro">
+        <strong>Professional AI Caption Studio</strong>
+        <p>Timeline-aware Groq transcription with precise word timing, production caption styles, and direct Premiere Pro insertion.</p>
+        <div class="compat"><span>Codex</span><span>Antigravity</span><span>Claude Code</span><span>Premiere Pro</span></div>
+    </div>
+
+    <!-- Settings Drawer (Collapsible) -->
+    <div class="settings-drawer" id="settingsDrawer">
+        <div class="settings-title">
+            <span>Settings & API Key</span>
+            <span class="close-link" id="btnCloseSettings">Close</span>
+        </div>
+        <div class="control-group">
+            <label for="pythonPathInput">Custom Python Path (Optional)</label>
+            <input type="text" id="pythonPathInput" placeholder="Auto-detected" spellcheck="false" />
+        </div>
+    </div>
+
+    <div class="control-group" id="groqKeySection">
+        <label for="apiKeyInput">Groq API Key <span style="font-weight:normal; font-size:11px; opacity:0.85;">(Get your free key at <a href="https://console.groq.com/keys" target="_blank" onclick="if(window.cep) window.cep.util.openURLInDefaultBrowser('https://console.groq.com/keys'); return false;" style="color:#4fa3e3; text-decoration:underline;">console.groq.com/keys</a>)</span></label>
+        <input type="password" id="apiKeyInput" placeholder="Paste your Groq API key (gsk_...)" spellcheck="false" autocomplete="off" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" id="saveApiKey">Save key</button>
+            <button type="button" id="showApiKey" aria-pressed="false">Show</button>
+            <button type="button" id="clearApiKey">Forget key</button>
+        </div>
+        <p id="apiKeyStatus" role="status" style="font-size:11px;color:#aaa">Used for Groq transcription. Save stores it locally, unencrypted; leave unsaved on shared computers.</p>
+    </div>
+
+    <!-- Pacing Style (Word by Word highlighted) -->
+    <div class="control-group">
+        <label for="styleSelect">
+            Pacing Style
+            <span class="hint">Zero Word Stacking</span>
+        </label>
+        <select id="styleSelect">
+            <option value="word" selected>Word by Word (1 Word - Rapid Fire)</option>
+            <option value="word_2">2 Words (Punchy)</option>
+            <option value="tiktok">TikTok / Shorts (2-3 Words)</option>
+            <option value="phrase">Phrase (4-5 Words)</option>
+            <option value="sentence">Full Sentence</option>
+        </select>
+    </div>
+
+    <!-- Clean Punctuation and Casing Grid -->
+    <div class="grid-2">
+        <div class="control-group">
+            <label for="puncSelect">Punctuation</label>
+            <select id="puncSelect">
+                <option value="strip" selected>Clean Viral (No Punctuation)</option>
+                <option value="keep">Keep Punctuation</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="casingSelect">Casing</label>
+            <select id="casingSelect">
+                <option value="uppercase" selected>ALL CAPS (VIRAL)</option>
+                <option value="gencaption">Sentence case</option>
+                <option value="lowercase">lowercase</option>
+                <option value="titlecase">Title Case</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Destination Track and Timeline Scope Grid -->
+    <div class="grid-2">
+        <div class="control-group">
+            <label for="trackSelect">Destination</label>
+            <select id="trackSelect">
+                <option value="caption" selected>Caption Track</option>
+                <option value="graphics">Video Track (Graphics)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="scopeSelect">Timeline Scope</label>
+            <select id="scopeSelect">
+                <option value="entire" selected>Entire Timeline</option>
+                <option value="workarea">In/Out Work Area</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="control-group">
+        <label for="langSelect">Language</label>
+        <select id="langSelect">
+            <option value="auto">Auto Detect</option>
+            <option value="en" selected>English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+            <option value="ar">Arabic</option>
+            <option value="ru">Russian</option>
+            <option value="hi">Hindi</option>
+            <option value="nl">Dutch</option>
+            <option value="tr">Turkish</option>
+        </select>
+    </div>
+
+    <button id="btnTranscribe" class="btn-transcribe">
+        <span id="btnIcon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+        </span>
+        <span id="btnText">Generate Word Captions</span>
+    </button>
+
+    <div class="status-card" id="statusBox">
+        <div class="info">Ready. Style: <strong>Word by Word (Zero Stacking)</strong>. Click Generate.</div>
+    </div>
+
+    <div class="plugin-footer">Uniprae works with <b>Codex, Antigravity, and Claude Code</b><br>Made by <b>@Gulubba_</b></div>
+
+    <script>
+        var cs = new CSInterface();
+        var isNode = (typeof require !== 'undefined');
+        var fs = isNode ? require('fs') : null;
+        var path = isNode ? require('path') : null;
+        var os = isNode ? require('os') : null;
+        var cp = isNode ? require('child_process') : null;
+
+        var btn = document.getElementById("btnTranscribe");
+        var btnIcon = document.getElementById("btnIcon");
+        var btnText = document.getElementById("btnText");
+        var statusBox = document.getElementById("statusBox");
+        var styleSelect = document.getElementById("styleSelect");
+        var puncSelect = document.getElementById("puncSelect");
+        var casingSelect = document.getElementById("casingSelect");
+        var trackSelect = document.getElementById("trackSelect");
+        var scopeSelect = document.getElementById("scopeSelect");
+        var langSelect = document.getElementById("langSelect");
+        var btnReload = document.getElementById("btnReload");
+        var btnSettings = document.getElementById("btnSettings");
+        var btnCloseSettings = document.getElementById("btnCloseSettings");
+        var settingsDrawer = document.getElementById("settingsDrawer");
+        var apiKeyInput = document.getElementById("apiKeyInput");
+        var pythonPathInput = document.getElementById("pythonPathInput");
+
+        var sharedCfg = (window.UnipraeConfig && window.UnipraeConfig.readConfig) ? window.UnipraeConfig.readConfig() : {};
+
+        // Load saved settings
+        var savedKey = sharedCfg.groqApiKey || localStorage.getItem("groq_api_key") || "";
+        apiKeyInput.value = savedKey;
+        if (savedKey) {
+            var masked = (window.UnipraeConfig && window.UnipraeConfig.maskApiKey) ? window.UnipraeConfig.maskApiKey(savedKey) : "Key configured";
+            document.getElementById("apiKeyStatus").textContent = "Key loaded (" + masked + ") from shared settings (%LOCALAPPDATA%\\Uniprae\\settings.json, unencrypted). Available to panel and MCP.";
+        }
+
+        var savedPy = localStorage.getItem("groq_python_path") || "";
+        pythonPathInput.value = savedPy;
+
+        var persistedControls = [styleSelect, puncSelect, casingSelect, trackSelect, scopeSelect, langSelect];
+        var sharedKeys = {
+            styleSelect: "captionStyle",
+            puncSelect: "captionPunctuation",
+            casingSelect: "captionCasing",
+            trackSelect: "captionDestination",
+            scopeSelect: "timelineScope",
+            langSelect: "captionLanguage"
+        };
+        for (var pc = 0; pc < persistedControls.length; pc++) {
+            var control = persistedControls[pc];
+            var savedValue = localStorage.getItem("uniprae.transcriber." + control.id);
+            if (savedValue !== null) control.value = savedValue;
+            var confKey = sharedKeys[control.id];
+            if (sharedCfg[confKey] !== undefined) control.value = sharedCfg[confKey];
+            control.addEventListener("change", function() {
+                localStorage.setItem("uniprae.transcriber." + this.id, this.value);
+                if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                    var updateObj = {};
+                    updateObj[sharedKeys[this.id]] = this.value;
+                    window.UnipraeConfig.writeConfig(updateObj);
+                }
+            });
+        }
+
+        btnSettings.addEventListener("click", function() {
+            settingsDrawer.classList.toggle("open");
+        });
+
+        btnCloseSettings.addEventListener("click", function() {
+            settingsDrawer.classList.remove("open");
+        });
+
+        document.getElementById("saveApiKey").addEventListener("click", function() {
+            var val = apiKeyInput.value.trim();
+            try {
+              if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                window.UnipraeConfig.writeConfig({ groqApiKey: val });
+              }
+              if (val) {
+                localStorage.setItem("groq_api_key", val);
+                var masked = (window.UnipraeConfig && window.UnipraeConfig.maskApiKey) ? window.UnipraeConfig.maskApiKey(val) : "Key configured";
+                document.getElementById("apiKeyStatus").textContent = "Key saved (" + masked + ") in shared settings (%LOCALAPPDATA%\\Uniprae\\settings.json, unencrypted). Available to panel and MCP.";
+              } else {
+                localStorage.removeItem("groq_api_key");
+                document.getElementById("apiKeyStatus").textContent = "Saved key removed from panel and shared settings.";
+              }
+            } catch(e) { document.getElementById("apiKeyStatus").textContent = "Storage error: " + e.message; }
+        });
+        document.getElementById("showApiKey").addEventListener("click", function() {
+            var show = apiKeyInput.type === "password";
+            apiKeyInput.type = show ? "text" : "password";
+            this.textContent = show ? "Hide" : "Show";
+            this.setAttribute("aria-pressed", String(show));
+        });
+        document.getElementById("clearApiKey").addEventListener("click", function() {
+            apiKeyInput.value = "";
+            document.getElementById("saveApiKey").click();
+        });
+
+        pythonPathInput.addEventListener("change", function() {
+            var val = pythonPathInput.value.trim();
+            localStorage.setItem("groq_python_path", val);
+        });
+
+        btnReload.addEventListener("click", function() {
+            window.location.reload();
+        });
+
+        function log(msg, type) {
+            var el = document.createElement("div");
+            if (type) el.className = type;
+            el.innerHTML = msg;
+            statusBox.appendChild(el);
+            statusBox.scrollTop = statusBox.scrollHeight;
+        }
+
+        function clearLog() {
+            statusBox.innerHTML = "";
+        }
+
+        function setBusy(busy, text) {
+            btn.disabled = busy;
+            if (busy) {
+                btnIcon.innerHTML = '<span class="spinner"></span>';
+                btnText.textContent = text || "Processing...";
+            } else {
+                btnIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+                btnText.textContent = "Generate Word Captions";
+            }
+        }
+
+        // Resolves the best available Python interpreter
+        function resolvePython() {
+            if (pythonPathInput.value && pythonPathInput.value.trim()) {
+                var custom = pythonPathInput.value.trim();
+                if (fs && fs.existsSync(custom)) return custom;
+            }
+            var candidates = [
+                path.join(os.homedir(), "Desktop", "Video silence reomver", ".venv", "Scripts", "python.exe"),
+                "C:\\Users\\OWNER\\AppData\\Local\\Python\\bin\\python.exe",
+                "python.exe",
+                "python",
+                "py.exe"
+            ];
+            if (fs) {
+                for (var i = 0; i < candidates.length; i++) {
+                    if (fs.existsSync(candidates[i])) return candidates[i];
+                }
+            }
+            return "python";
+        }
+
+        // Resolves transcribe.py script location
+        function resolveScriptPath() {
+            var extPath = "";
+            try {
+                if (cs && cs.getSystemPath) {
+                    extPath = cs.getSystemPath(SystemPath.EXTENSION);
+                }
+            } catch(e) {}
+
+            var candidates = [];
+            if (extPath && path) {
+                candidates.push(path.join(extPath, "py", "transcribe.py"));
+                candidates.push(path.join(extPath, "transcribe.py"));
+                candidates.push(path.join(extPath, "..", "groq_transcriber", "py", "transcribe.py"));
+            }
+            candidates.push("C:\\Users\\OWNER\\AppData\\Roaming\\Adobe\\CEP\\extensions\\groq_transcriber\\py\\transcribe.py");
+            candidates.push("C:\\Users\\OWNER\\.gemini\\antigravity\\scratch\\groq-transcriber\\transcribe.py");
+
+            if (fs) {
+                for (var i = 0; i < candidates.length; i++) {
+                    if (fs.existsSync(candidates[i])) return candidates[i];
+                }
+            }
+            return candidates[0];
+        }
+
+        btn.addEventListener("click", function() {
+            clearLog();
+            var apiKey = apiKeyInput.value.trim();
+            if (!apiKey && window.UnipraeConfig && window.UnipraeConfig.readConfig) {
+                apiKey = window.UnipraeConfig.readConfig().groqApiKey || "";
+            }
+            if (!apiKey) {
+                apiKey = localStorage.getItem("groq_api_key") || (isNode && process.env.GROQ_API_KEY) || "";
+            }
+            if (!apiKey) {
+                log('Enter your Groq API key above before generating captions.', 'error');
+                apiKeyInput.focus();
+                return;
+            }
+            if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                window.UnipraeConfig.writeConfig({
+                    groqApiKey: apiKey,
+                    captionStyle: styleSelect.value,
+                    captionPunctuation: puncSelect.value,
+                    captionCasing: casingSelect.value,
+                    captionDestination: trackSelect.value,
+                    timelineScope: scopeSelect.value,
+                    captionLanguage: langSelect.value
+                });
+            }
+            setBusy(true, "Connecting...");
+            log('<span class="active">[1/4]</span> Checking active sequence...', 'active');
+
+            cs.evalScript("GroqTranscriber.getActiveSequenceInfo()", function(infoRes) {
+                var info;
+                try {
+                    info = JSON.parse(infoRes);
+                } catch(e) {
+                    setBusy(false);
+                    log('<span class="error">Communication error: ' + infoRes + '</span>', 'error');
+                    return;
+                }
+
+                if (info.error) {
+                    setBusy(false);
+                    log('<span class="error">' + info.error + '</span>', 'error');
+                    return;
+                }
+
+                log('Sequence: <strong style="color:#fff;">' + info.name + '</strong> (' + (info.duration || 0) + 's)');
+
+                // 2. Export sequence audio
+                setBusy(true, "Exporting Audio...");
+                log('<span class="active">[2/4]</span> Preparing sequence audio...', 'active');
+
+                var tempDir = isNode ? os.tmpdir() : "C:\\Users\\OWNER\\AppData\\Local\\Temp";
+                var timestamp = Date.now();
+                var audioPath = isNode ? path.join(tempDir, "ppro_seq_" + timestamp + ".mp3") : (tempDir + "\\ppro_seq_" + timestamp + ".mp3");
+                var srtPath = isNode ? path.join(tempDir, "ppro_words_" + timestamp + ".srt") : (tempDir + "\\ppro_words_" + timestamp + ".srt");
+
+                var audioEscaped = audioPath.replace(/\\/g, "\\\\");
+                var workAreaOnly = (scopeSelect.value === "workarea");
+
+                cs.evalScript("GroqTranscriber.exportSequenceAudio('" + audioEscaped + "', " + workAreaOnly + ")", function(exportRes) {
+                    var expData;
+                    try {
+                        expData = JSON.parse(exportRes);
+                    } catch(e) {
+                        setBusy(false);
+                        log('<span class="error">Audio export error: ' + exportRes + '</span>', 'error');
+                        return;
+                    }
+
+                    if (expData.error) {
+                        setBusy(false);
+                        log('<span class="error">' + expData.error + '</span>', 'error');
+                        return;
+                    }
+
+                    var pythonExe = resolvePython();
+                    var scriptPath = resolveScriptPath();
+                    var lang = langSelect.value;
+                    var style = styleSelect.value;
+                    var casing = casingSelect.value;
+                    var stripPunc = (puncSelect.value === "strip");
+                    var targetTrack = trackSelect.value;
+
+                    var args = [scriptPath];
+
+                    if (expData.method === "clip_extraction") {
+                        var clipsJsonPath = path.join(tempDir, "ppro_clips_" + timestamp + ".json");
+                        fs.writeFileSync(clipsJsonPath, JSON.stringify(expData.clips), "utf-8");
+                        args.push("--clips", clipsJsonPath);
+                        log('Timeline clips extracted (' + expData.clips.length + ' audio sources)');
+                    } else {
+                        var srcAudio = expData.path || audioPath;
+                        args.push(srcAudio);
+                        log('Direct audio exported (' + ((expData.size || 0) / 1024 / 1024).toFixed(2) + ' MB)');
+                    }
+
+                    args.push("-o", srtPath, "-s", style, "-c", casing, "-m", "whisper-large-v3");
+                    if (stripPunc) {
+                        args.push("--strip-punctuation");
+                    }
+                    if (lang && lang !== "auto") {
+                        args.push("-l", lang);
+                    }
+
+                    // 3. Run Groq transcription
+                    setBusy(true, "Transcribing Words...");
+                    var styleDesc = (style === "word") ? "Word-by-Word" : (style === "word_2" ? "2 Words" : style);
+                    log('<span class="active">[3/4]</span> Transcribing with Groq Whisper [' + styleDesc + ' | ' + casing + ']...', 'active');
+
+                    var startTime = Date.now();
+
+                    if (!cp) {
+                        setBusy(false);
+                        log('<span class="error">Node.js environment unavailable.</span>', 'error');
+                        return;
+                    }
+
+                    var childEnv = {};
+                    Object.keys(process.env).forEach(function(key) { childEnv[key] = process.env[key]; });
+                    childEnv.GROQ_API_KEY = apiKey;
+                    cp.execFile(pythonExe, args, { windowsHide: true, env: childEnv }, function(err, stdout, stderr) {
+                        if (err) {
+                            setBusy(false);
+                            var errDetail = String(stderr || err.message).split(apiKey).join('[redacted]').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            log('<span class="error">Transcription error: ' + errDetail + '</span>', 'error');
+                            return;
+                        }
+
+                        var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                        log('Word timestamps computed in <strong style="color:#60a5fa;">' + elapsed + 's</strong>!');
+
+                        // 4. Import SRT to timeline
+                        setBusy(true, "Inserting to Timeline...");
+                        var trackLabel = (targetTrack === 'graphics' ? 'Video Track (Graphics)' : 'Caption Track');
+                        log('<span class="active">[4/4]</span> Inserting word captions onto ' + trackLabel + '...', 'active');
+
+                        var srtEscaped = srtPath.replace(/\\/g, "\\\\");
+                        cs.evalScript("GroqTranscriber.insertSRTToTimeline('" + srtEscaped + "', '" + targetTrack + "')", function(insertRes) {
+                            setBusy(false);
+                            var insData;
+                            try {
+                                insData = JSON.parse(insertRes);
+                            } catch(e) {
+                                log('<span class="error">Parse error: ' + insertRes + '</span>', 'error');
+                                return;
+                            }
+
+                            if (insData.error) {
+                                log('<span class="error">' + insData.error + '</span>', 'error');
+                            } else {
+                                log('<span class="highlight">&#10004; Complete!</span> Added to ' + (insData.method || "Caption Track"), 'highlight');
+                                log('<span class="info">Zero Word Stacking & Continuous timing active.</span>', 'info');
+                            }
+                        });
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

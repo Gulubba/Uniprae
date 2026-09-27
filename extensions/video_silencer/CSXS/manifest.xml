@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.silencer.panel" ExtensionBundleVersion="1.0.0" ExtensionBundleName="Video Silencer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<ExtensionList>
+		<Extension Id="com.silencer.panel" Version="1.0.0" />
+	</ExtensionList>
+	<ExecutionEnvironment>
+		<HostList>
+			<Host Name="PPRO" Version="11.0" />
+		</HostList>
+		<LocaleList>
+			<Locale Code="All" />
+		</LocaleList>
+		<RequiredRuntimeList>
+			<RequiredRuntime Name="CSXS" Version="6.0" />
+		</RequiredRuntimeList>
+	</ExecutionEnvironment>
+
+	<DispatchInfoList>
+		<Extension Id="com.silencer.panel">
+			<DispatchInfo>
+				<Resources>
+					<MainPath>./index.html</MainPath>
+					<ScriptPath>./jsx/hostscript.jsx</ScriptPath>
+					<CEFCommandLine>
+						<Parameter>--allow-file-access</Parameter>
+						<Parameter>--allow-file-access-from-files</Parameter>
+						<Parameter>--enable-nodejs</Parameter>
+						<Parameter>--mixed-context</Parameter>
+					</CEFCommandLine>
+				</Resources>
+				<Lifecycle>
+					<AutoVisible>true</AutoVisible>
+				</Lifecycle>
+				<UI>
+					<Type>Panel</Type>
+					<Menu>Video Silencer</Menu>
+					<Geometry>
+						<Size>
+							<Height>520</Height>
+							<Width>350</Width>
+						</Size>
+						<MinSize>
+							<Height>380</Height>
+							<Width>280</Width>
+						</MinSize>
+					</Geometry>
+				</UI>
+			</DispatchInfo>
+		</Extension>
+	</DispatchInfoList>
+</ExtensionManifest>

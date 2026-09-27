@@ -1,0 +1,120 @@
+# Uniprae setup and validation
+
+Updated 27 September 2026. This is the current implementation guide; the earlier integration status report describes the pre-repair setup.
+
+## What changed
+
+The installer now registers one unified, standard stdio MCP server for Codex, Claude Code and Antigravity. It uses absolute Node and server paths, so it does not depend on the client's working directory or PATH refresh. Existing client configuration is backed up before changes. The specifically identified Astra After Effects entry is disabled but retained; missing legacy Adobe launchers are removed from client configuration only when their referenced script does not exist.
+
+Both Adobe extensions now use the same generated interface. The shared source is `extensions/shared`. The dashboard has Start Server, Stop Server and Health Check. Premiere also has Undo Last Cut. Transcriber and Silencer remain accessible in Premiere through their workflow tabs. The same tabs in After Effects explain that those operations require Premiere.
+
+The After Effects tool inventory retains every `ae_*` tool name found in the previous repository server. The unified server advertises 105 tools, including 91 After Effects tools, eleven Premiere tools and three shared Adobe tools. Existing licensing requirements remain in effect.
+
+Structured script results are serialized before leaving ExtendScript. An HTTP timeout no longer automatically replays an After Effects mutation through the file transport. Only a refused connection permits that fallback, because an interrupted request may already have changed the composition.
+
+## Install or update
+
+From this repository, build the server and run the installer:
+
+```powershell
+npm run build --prefix aftereffects-mcp
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-Universal.ps1
+```
+
+The installer synchronizes the panels and copies the server, Adobe extensions, workflow tools and client routes. Configuration backups are named `*.uniprae-<timestamp>.bak`; Adobe extension backups are under `%LOCALAPPDATA%\Uniprae\backups`.
+
+The default installation does not change PATH or Adobe security registry settings. For a fresh machine, unsigned CEP extensions may require developer mode. The explicit `-EnableDeveloperExtensions` option enables PlayerDebugMode for the installer’s supported CEP versions; use it only when that development setup is intended. `-AddToPath` is optional; MCP clients do not need it.
+
+Reload the Adobe extensions after installation. If the old interface persists, save work and restart the Adobe application. Then open Window > Extensions > Uniprae and press Start Server. Refresh each AI client's MCP connections or restart that client to load its new configuration.
+
+## Client connections
+
+| Client | Configuration written | Invocation |
+| --- | --- | --- |
+| Codex | `~/.codex/config.toml`, server `uniprae` | `$ae`, `$pr` |
+| Claude Code | User-scoped `~/.claude.json` | `/ae`, `/pr`, or direct tool use |
+| Antigravity | `~/.gemini/config/mcp_config.json` plus legacy IDE locations | Direct tools or supported MCP prompts |
+| Another local stdio MCP client | Copy the installed `mcp-config.example.json` entry into its configuration | Direct tools; prompt support varies |
+
+Each client starts its own MCP process. The Adobe extensions listen locally on ports 3006 for After Effects and 3005 for Premiere. Those ports are Adobe bridges, not MCP HTTP endpoints. A remote or cloud-only AI tool cannot reach this desktop merely by using localhost. It needs a supported local execution connection; no public bridge is configured by this installer.
+
+## Keeping the connection available
+
+Start Server remembers the enabled state and retries listener failures every three seconds while the panel remains loaded. Requests are queued and executed one at a time within each panel. Stop Server disables automatic recovery. Health checks report busy while an edit is executing instead of joining the editing queue.
+
+There is no deliberate session expiry in the panel runtime. This does not make a closed Adobe application or unloaded CEP panel available. Sleep, application crashes, client timeouts and extension unloading still interrupt access. After an uncertain edit timeout, inspect the project before retrying.
+
+## Silenced sequence workflow
+
+The default Premiere mode analyzes media into retained source ranges, imports the generated Premiere XML as a separate sequence named `Silenced`, and opens it. The source sequence is not modified.
+
+Select the source clip before running the silencer. The detector constrains both its reported ranges and the generated Premiere XML to that clip's source In/Out points, so trimmed-away parts of the underlying media cannot reappear in `Silenced`. Statistics describe the selected range rather than the full source file. The quality defaults match the standalone `Video silence reomver` project: a 0.20-second margin and auto-editor's automatic audio threshold. Nested-sequence time is not assumed to equal atomic source-media time: open the nested sequence and select its original media clip for an accurate cut. The panel stops without changing the project otherwise.
+
+For MCP callers, use `ppro_remove_silence`; its default Premiere mode also creates the separate `Silenced` sequence. Render mode exports media without importing a sequence.
+
+Two path-free MCP triggers provide complete button-equivalent operation matching the panel UI:
+- `ppro_trigger_silencer`: Reads the saved panel silence settings (margin, threshold, output mode), resolves the selected source clip, preserves its In/Out range, executes auto-editor, and creates and opens a separate sequence named `Silenced`. The source sequence remains completely unaltered. If a nested sequence is selected, it safely stops without changes and instructs the user to open the nested sequence and select the source clip.
+- `ppro_trigger_transcriber`: Reads the saved panel credentials and caption settings from `%LOCALAPPDATA%\Uniprae\settings.json`. It exports active sequence audio (or respects `scope: selected_clip`), performs a pre-flight HTTPS key verification directly against Groq, executes Groq Whisper transcription, generates an SRT file, imports it into Premiere, and verifies that the caption track or caption item was created on the active sequence.
+
+### Shared Local Configuration Layer
+
+A single shared configuration layer (`%LOCALAPPDATA%\Uniprae\settings.json`, with fallback to `%TEMP%\uniprae-settings.json`) synchronizes all 11 settings between the CEP extension panels and the MCP server:
+- `groqApiKey`
+- `captionStyle`
+- `captionCasing`
+- `captionLanguage`
+- `captionPunctuation`
+- `captionDestination`
+- `timelineScope`
+- `silenceMargin`
+- `silenceThreshold`
+- `silenceOutput`
+- `silenceSource`
+
+**Security & Credential Disclosure**: The Groq API key is stored locally unencrypted in the user's profile (`%LOCALAPPDATA%\Uniprae\settings.json`). The key is NEVER logged, printed, returned in JSON errors, or passed on command-line arguments. In all error reports and diagnostics, the key is strictly masked (e.g., `gsk_...XXXX (56 chars)`).
+
+### Categorized Transcriber Diagnostics
+
+Transcription failures are categorized into distinct, actionable error types and stop execution before attempting timeline caption import:
+- `Missing key`: Neither the shared config, the panel, nor `GROQ_API_KEY` contains a key.
+- `Invalid or revoked key`: Groq returns HTTP 401 `invalid_api_key`.
+- `TLS failure`: Windows Schannel / curl handshake failure (automatically falls back to dependable Python HTTPS transport).
+- `Network failure`: DNS, connection refusal, or timeout reaching `api.groq.com`.
+- `Groq rate limit`: Groq returns HTTP 429.
+- `Audio export failure`: Premiere could not export active sequence audio.
+- `SRT import failure`: Premiere failed to import or create caption tracks.
+
+Python 3 and auto-editor are required for silence analysis. The engine automatically discovers local virtual environments (such as `Desktop\Video silence reomver\.venv`) and includes bundled FFmpeg/FFprobe binaries on `PATH`.
+
+## Verification performed
+
+Live acceptance testing on Adobe Premiere Pro 25.6.3 (`test.prproj`, source sequence `face rubbing`, clip `2.mp4`):
+
+| Test Item | Specification | Acceptance Result |
+| --- | --- | --- |
+| Shared Config Layer | 11 parameters synced between CEP & MCP | **PASS** — `%LOCALAPPDATA%\Uniprae\settings.json` loaded by both |
+| Key Masking & Security | No raw credentials in CLI args, logs, or JSON | **PASS** — Always masked (`gsk_...XXXX`), zero raw key leakage |
+| Missing Key Handling | Stop before export/import with clear error | **PASS** — Categorized as `Missing key` |
+| Invalid Key Handling | Direct HTTPS pre-verification catches 401 | **PASS** — Categorized as `Invalid or revoked key` (<200ms) |
+| Live Silencer Trigger | Create & open `Silenced`, leave original intact | **PASS** — 14 retained sections, `face rubbing` 100% preserved |
+| Nested Sequence Refusal | Safe refusal with clear user instruction | **PASS** — Stops safely without modifying project |
+| Tool Inventory & Client Routes | Codex, Claude Code, Antigravity compatibility | **PASS** — All 105 tools advertised and exposed |
+
+The automated tests do not establish Premiere XML-import behavior for every codec and clip type. The next acceptance test is a short selected clip in a disposable project: run silence removal, verify that a sequence named `Silenced` is created and opened, check audio/video synchronization, and confirm the original sequence remains unchanged.
+
+## Useful diagnostics
+
+```powershell
+node scripts/testing/uniprae-smoke.mjs
+node --test tests/register-clients.test.mjs tests/timeline-cuts.test.mjs tests/panel-runtime.test.mjs
+```
+
+Run `tests/silence_segments_test.py` with the configured Python interpreter. A startup banner alone is not a passing connection test: initialization, tools/list and host inspection must succeed.
+
+If a panel says port in use, check for another copy of that Adobe extension before changing ports. If no tools appear, inspect the client configuration and startup errors. If an edit reports uncertain completion, inspect the target before retrying. If the source exists in a nested sequence but cannot be resolved safely, import and select the actual source media rather than silently substituting a different clip.
+
+## Remaining work before release
+
+Complete native acceptance tests after reloading both extensions. Test custom undo on real multichannel audio and repeated operations. A native single-step Undo transaction would require a separately tested Premiere transaction implementation, such as its UXP action APIs; the custom restoration button must not be described as that feature. Long idle sessions and simultaneous client connections should receive an extended test before promising uninterrupted production operation.
+
+Configuration formats were checked against official documentation: [Codex MCP](https://developers.openai.com/learn/docs-mcp), [Claude Code MCP](https://code.claude.com/docs/en/mcp), and [Antigravity MCP](https://antigravity.google/docs/mcp).

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.uniprae.groq.transcriber" ExtensionBundleVersion="1.0.0" ExtensionBundleName="Uniprae Transcriber" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <ExtensionList>
+        <Extension Id="com.uniprae.groq.transcriber" Version="1.0.0" />
+    </ExtensionList>
+    <ExecutionEnvironment>
+        <HostList><Host Name="PPRO" Version="11.0" /></HostList>
+        <LocaleList><Locale Code="All" /></LocaleList>
+        <RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="6.0" /></RequiredRuntimeList>
+    </ExecutionEnvironment>
+    <DispatchInfoList>
+        <Extension Id="com.uniprae.groq.transcriber">
+            <DispatchInfo>
+                <Resources>
+                    <MainPath>./index.html</MainPath>
+                    <ScriptPath>./jsx/hostscript.jsx</ScriptPath>
+                    <CEFCommandLine>
+                        <Parameter>--allow-file-access</Parameter>
+                        <Parameter>--allow-file-access-from-files</Parameter>
+                        <Parameter>--enable-nodejs</Parameter>
+                        <Parameter>--mixed-context</Parameter>
+                    </CEFCommandLine>
+                </Resources>
+                <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
+                <UI>
+                    <Type>Panel</Type>
+                    <Menu>Uniprae Transcriber</Menu>
+                    <Geometry>
+                        <Size><Height>680</Height><Width>380</Width></Size>
+                        <MinSize><Height>480</Height><Width>320</Width></MinSize>
+                    </Geometry>
+                </UI>
+            </DispatchInfo>
+        </Extension>
+    </DispatchInfoList>
+</ExtensionManifest>

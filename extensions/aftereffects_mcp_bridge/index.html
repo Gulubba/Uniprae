@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uniprae</title>
+    <script src="./lib/CSInterface.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+        body {
+            background-color: #18181b;
+            color: #f4f4f5;
+            padding: 12px;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            gap: 10px;
+            overflow: hidden;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #27272a;
+        }
+        .title-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.2px;
+        }
+        .badge {
+            background: #6366f1;
+            color: #ffffff;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card {
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #333338;
+        }
+        .status-beacon {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 11px;
+            color: #22c55e;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        .dot.error {
+            background: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+            animation: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .cmd-count {
+            color: #a1a1aa;
+            font-size: 10px;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            font-size: 10px;
+            color: #a1a1aa;
+        }
+        .info-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .info-item strong {
+            color: #f4f4f5;
+        }
+        .log-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .log-header {
+            background: #18181b;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #71717a;
+            border-bottom: 1px solid #27272a;
+            display: flex;
+            justify-content: space-between;
+        }
+        .log-box {
+            flex: 1;
+            padding: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 10px;
+            overflow-y: auto;
+            color: #a1a1aa;
+            line-height: 1.45;
+        }
+        .log-line {
+            margin-bottom: 3px;
+            word-break: break-all;
+        }
+        .log-line.success { color: #4ade80; }
+        .log-line.error { color: #f87171; }
+        .log-line.info { color: #818cf8; }
+        .log-line.warn { color: #fbbf24; }
+        .log-line.cmd { color: #38bdf8; }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            flex: 1;
+            padding: 7px 10px;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            color: #f4f4f5;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        button:hover {
+            background: #3f3f46;
+            border-color: #52525b;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .brand-intro { background:linear-gradient(135deg,rgba(124,108,255,.16),rgba(40,212,195,.07)); border:1px solid #35405a; border-radius:10px; padding:10px; margin-bottom:10px; }
+        .brand-intro strong { display:block; color:#fff; font-size:12px; margin-bottom:3px; }
+        .brand-intro p { color:#8d9ab0; font-size:10px; line-height:1.45; }
+        .compat { display:flex; gap:5px; flex-wrap:wrap; margin-top:7px; }
+        .compat span { padding:3px 7px; border-radius:999px; background:#1c2537; border:1px solid #344158; color:#cbd5e1; font-size:9px; }
+        .plugin-footer { color:#778399; text-align:center; font-size:9px; line-height:1.5; padding-top:9px; }
+        .plugin-footer b { color:#cbd5e1; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title-group">
+            <span class="title">⚡ Uniprae for After Effects</span>
+            <span class="badge">CEP v2.2</span>
+        </div>
+        <span style="font-size:10px; color:#71717a;" id="latencyLabel">Latency: -- ms</span>
+    </div>
+
+    <div class="brand-intro">
+        <strong>Professional AI motion workflow bridge</strong>
+        <p>Automate compositions, layers, animation, rendering, and project workflows from your AI coding environment.</p>
+        <div class="compat"><span>Codex</span><span>Antigravity</span><span>Claude Code</span><span>After Effects</span></div>
+    </div>
+
+    <div class="card">
+        <div class="status-row">
+            <div class="status-beacon" id="beacon">
+                <div class="dot" id="dot"></div>
+                <span id="beaconText">LISTENING (PORT 3006)</span>
+            </div>
+            <span class="cmd-count" id="cmdCount">0 cmds</span>
+        </div>
+        <div class="info-grid">
+            <div class="info-item" title="Project">Project: <strong id="projName">Detecting...</strong></div>
+            <div class="info-item" title="Active Comp">Comp: <strong id="compName">Detecting...</strong></div>
+            <div class="info-item">HTTP: <strong>127.0.0.1:3006</strong></div>
+            <div class="info-item">IPC: <strong>Dual (HTTP + File)</strong></div>
+        </div>
+    </div>
+
+    <div class="log-container">
+        <div class="log-header">
+            <span>LIVE EXECUTION CONSOLE</span>
+            <span id="statusSub">Ready</span>
+        </div>
+        <div class="log-box" id="logBox">
+            <div class="log-line info">[INIT] After Effects MCP CEP Bridge v2.2 starting up...</div>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button id="btnHealth">⚡ Health Check</button>
+        <button id="btnClear">🧹 Clear Log</button>
+        <button id="btnRestart">🔄 Restart Server</button>
+    </div>
+
+    <div class="plugin-footer">Compatible with <b>Codex, Antigravity, and Claude Code</b> · Made by <b>@Gulubba_</b></div>
+
+    <script>
+        window.onload = function() {
+            var cs = new CSInterface();
+            var http = require('http');
+            var path = require('path');
+            var os = require('os');
+            var fs = require('fs');
+
+            var logBox = document.getElementById('logBox');
+            var projName = document.getElementById('projName');
+            var compName = document.getElementById('compName');
+            var cmdCountEl = document.getElementById('cmdCount');
+            var beaconText = document.getElementById('beaconText');
+            var dot = document.getElementById('dot');
+            var latencyLabel = document.getElementById('latencyLabel');
+            var statusSub = document.getElementById('statusSub');
+            var btnHealth = document.getElementById('btnHealth');
+            var btnClear = document.getElementById('btnClear');
+            var btnRestart = document.getElementById('btnRestart');
+
+            var commandsProcessed = 0;
+            var server = null;
+            var PORT = 3006;
+
+            function log(msg, type) {
+                var el = document.createElement('div');
+                el.className = 'log-line ' + (type || '');
+                var time = new Date().toLocaleTimeString();
+                el.textContent = '[' + time + '] ' + msg;
+                logBox.appendChild(el);
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+
+            // 1. Start HTTP Server
+            function startServer() {
+                if (server) {
+                    try { server.close(); } catch(e) {}
+                }
+
+                server = http.createServer(function(req, res) {
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+                    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+                    if (req.method === 'OPTIONS') {
+                        res.writeHead(204);
+                        res.end();
+                        return;
+                    }
+
+                    // GET /health or /
+                    if (req.method === 'GET' && (req.url === '/health' || req.url === '/')) {
+                        cs.evalScript('AeMCP.ping()', function(pingRes) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(pingRes || JSON.stringify({ status: "online" }));
+                        });
+                        return;
+                    }
+
+                    // POST /preview
+                    if (req.method === 'POST' && req.url === '/preview') {
+                        var pbody = [];
+                        req.on('data', function(chunk) { pbody.push(chunk); });
+                        req.on('end', function() {
+                            try {
+                                var pParsed = pbody.length ? JSON.parse(Buffer.concat(pbody).toString()) : {};
+                                var outPath = pParsed.path || path.join(os.tmpdir(), 'ae-preview-' + Date.now() + '.png');
+                                outPath = outPath.replace(/\\/g, '/');
+                                cs.evalScript('AeMCP.capturePreview("' + outPath + '")', function(capRes) {
+                                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                                    res.end(capRes);
+                                });
+                            } catch(err) {
+                                res.writeHead(500, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ success: false, error: err.toString() }));
+                            }
+                        });
+                        return;
+                    }
+
+                    // POST /execute
+                    if (req.method === 'POST' && (req.url === '/execute' || req.url === '/')) {
+                        var startTime = Date.now();
+                        var body = [];
+                        req.on('data', function(chunk) { body.push(chunk); });
+                        req.on('end', function() {
+                            var bodyStr = Buffer.concat(body).toString();
+                            try {
+                                var parsed = JSON.parse(bodyStr);
+                                var scriptToEval = parsed.code || parsed.to_eval || bodyStr;
+                                var autoPreview = parsed.autoPreview === true;
+                                var previewPath = parsed.previewPath || (autoPreview ? path.join(os.tmpdir(), 'ae-mcp-bridge', 'preview_' + Date.now() + '.png').replace(/\\/g, '/') : null);
+
+                                commandsProcessed++;
+                                cmdCountEl.textContent = commandsProcessed + ' cmds';
+                                var snippet = scriptToEval.replace(/\s+/g, ' ').slice(0, 45);
+                                log('HTTP POST: ' + snippet + '...', 'cmd');
+
+                                cs.evalScript(scriptToEval, function(evalRes) {
+                                    var elapsed = Date.now() - startTime;
+                                    latencyLabel.textContent = 'Latency: ' + elapsed + 'ms';
+
+                                    var responsePayload = { success: true, data: evalRes, durationMs: elapsed };
+                                    try {
+                                        var parsedEval = JSON.parse(evalRes);
+                                        if (typeof parsedEval === 'object' && parsedEval !== null) {
+                                            responsePayload = parsedEval;
+                                            responsePayload.durationMs = elapsed;
+                                        }
+                                    } catch(e) {
+                                        // Keep raw evalRes
+                                    }
+
+                                    // If preview requested, capture snapshot
+                                    if (autoPreview && previewPath) {
+                                        cs.evalScript('AeMCP.capturePreview("' + previewPath + '")', function() {
+                                            responsePayload.previewPath = previewPath;
+                                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                                            res.end(JSON.stringify(responsePayload));
+                                            log('Returned response in ' + elapsed + 'ms (preview included)', 'success');
+                                        });
+                                    } else {
+                                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                                        res.end(JSON.stringify(responsePayload));
+                                        log('Returned response in ' + elapsed + 'ms', 'success');
+                                    }
+                                });
+                            } catch(err) {
+                                res.writeHead(500, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ success: false, error: err.toString() }));
+                                log('Execution error: ' + err.toString(), 'error');
+                            }
+                        });
+                        return;
+                    }
+
+                    res.writeHead(404);
+                    res.end();
+                });
+
+                server.listen(PORT, '127.0.0.1', function() {
+                    log('HTTP Bridge listening on 127.0.0.1:' + PORT, 'success');
+                    beaconText.textContent = 'LISTENING (PORT ' + PORT + ')';
+                    beaconText.style.color = '#22c55e';
+                    dot.className = 'dot';
+                    statusSub.textContent = 'Port ' + PORT + ' Online';
+                });
+
+                server.on('error', function(err) {
+                    log('HTTP Server Error: ' + err.message, 'error');
+                    beaconText.textContent = 'ERROR: ' + err.message;
+                    beaconText.style.color = '#ef4444';
+                    dot.className = 'dot error';
+                    statusSub.textContent = 'Server Error';
+                });
+            }
+
+            // 2. Dual File Fallback Watcher
+            var WATCH_DIR = path.join(os.tmpdir(), 'ae-mcp-commands');
+            var RESULT_DIR = path.join(os.tmpdir(), 'ae-mcp-bridge');
+            var READY_FILE = path.join(os.tmpdir(), 'ae-mcp-ready.txt');
+
+            try {
+                if (!fs.existsSync(WATCH_DIR)) fs.mkdirSync(WATCH_DIR, { recursive: true });
+                if (!fs.existsSync(RESULT_DIR)) fs.mkdirSync(RESULT_DIR, { recursive: true });
+            } catch(e) {}
+
+            function writeHeartbeat() {
+                try {
+                    var hbContent = 'READY:' + Date.now() + '\nPROCESSOR:CEP_EXTENSION\nGENERATION:3\n' + new Date().toString();
+                    fs.writeFileSync(READY_FILE, hbContent, 'utf8');
+                } catch(e) {}
+            }
+            writeHeartbeat();
+            setInterval(writeHeartbeat, 2000);
+
+            // Poll watch folder for legacy scripts
+            setInterval(function() {
+                try {
+                    if (!fs.existsSync(WATCH_DIR)) return;
+                    var files = fs.readdirSync(WATCH_DIR);
+                    for (var i = 0; i < files.length; i++) {
+                        var file = files[i];
+                        if (file.endsWith('.jsx')) {
+                            var filePath = path.join(WATCH_DIR, file);
+                            var code = fs.readFileSync(filePath, 'utf8');
+                            try { fs.unlinkSync(filePath); } catch(e) {}
+
+                            commandsProcessed++;
+                            cmdCountEl.textContent = commandsProcessed + ' cmds';
+                            log('Executed file command: ' + file, 'info');
+
+                            (function(fname, fcode) {
+                                cs.evalScript(fcode, function(res) {
+                                    log('Completed file: ' + fname, 'success');
+                                });
+                            })(file, code);
+                        }
+                    }
+                } catch(e) {}
+            }, 200);
+
+            // 3. Periodic Project / Comp update
+            function updateProjectInfo() {
+                cs.evalScript('AeMCP.ping()', function(res) {
+                    try {
+                        var data = JSON.parse(res);
+                        if (data && data.projectName) {
+                            projName.textContent = data.projectName;
+                        } else if (data && data.hasProject) {
+                            projName.textContent = 'Untitled Project';
+                        } else {
+                            projName.textContent = 'No Project Open';
+                        }
+
+                        if (data && data.activeComp) {
+                            compName.textContent = data.activeComp.name;
+                        } else {
+                            compName.textContent = 'None';
+                        }
+                    } catch(e) {}
+                });
+            }
+
+            // Buttons
+            btnHealth.addEventListener('click', function() {
+                log('Checking AE Host connection...', 'info');
+                updateProjectInfo();
+                cs.evalScript('AeMCP.ping()', function(res) {
+                    log('AE Response: ' + res, 'success');
+                });
+            });
+
+            btnClear.addEventListener('click', function() {
+                logBox.innerHTML = '';
+                log('Console cleared.', 'info');
+            });
+
+            btnRestart.addEventListener('click', function() {
+                log('Restarting HTTP Server...', 'warn');
+                startServer();
+            });
+
+            // Initial Startup
+            startServer();
+            updateProjectInfo();
+            setInterval(updateProjectInfo, 4000);
+            log('Extension ready. Dual-channel bridge active.', 'success');
+        };
+    </script>
+</body>
+</html>

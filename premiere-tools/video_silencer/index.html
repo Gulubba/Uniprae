@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uniprae Video Silencer</title>
+    <script>if(location.search.indexOf('embedded=1')!==-1){document.documentElement.className='embedded';}</script>
+    <script src="./lib/CSInterface.js"></script>
+    <script src="./uniprae-config.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #232323;
+            color: #d8d8d8;
+            padding: 14px;
+            font-size: 11px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+
+        .title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 9px;
+            background: #1473e6;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .btn-reload {
+            background: none;
+            border: 1px solid #444;
+            color: #aaa;
+            border-radius: 4px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .btn-reload:hover {
+            color: #fff;
+            border-color: #777;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 10px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: #1a1a1a;
+            color: #eee;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            font-size: 11px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input:focus {
+            border-color: #1473e6;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+            accent-color: #1473e6;
+            cursor: pointer;
+        }
+
+        .slider-val {
+            font-size: 11px;
+            font-weight: 600;
+            color: #4da3ff;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        .hint {
+            font-size: 9.5px;
+            color: #777;
+            margin-top: 3px;
+        }
+
+        .file-picker-group {
+            display: none;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .file-picker-group.visible {
+            display: flex;
+        }
+
+        .btn-browse {
+            background-color: #383838;
+            color: #eee;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-browse:hover {
+            background-color: #484848;
+        }
+
+        .btn-run {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: #1473e6;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-run:hover:not(:disabled) {
+            background: #0d62c9;
+        }
+
+        .btn-run:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .status-card {
+            margin-top: 12px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 11px;
+            min-height: 90px;
+            max-height: 180px;
+            overflow-y: auto;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        .status-card .highlight { color: #00d084; font-weight: bold; }
+        .status-card .error { color: #ff5252; font-weight: bold; }
+        .status-card .active { color: #4da3ff; }
+        .status-card .dim { color: #666; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .stats-grid.visible {
+            display: grid;
+        }
+
+        .stat-box {
+            background: #2a2a2a;
+            border: 1px solid #383838;
+            border-radius: 4px;
+            padding: 6px 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .stat-val {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+
+        .stat-box.success .stat-val {
+            color: #00d084;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <style>
+        :root { --bg:#090c14; --panel:#111725; --line:#28334a; --text:#f5f7fb; --muted:#8d9ab0; --cyan:#22c7b8; --green:#3ddc97; }
+        body { background:radial-gradient(circle at 100% 0,rgba(34,199,184,.15),transparent 34%),var(--bg); color:var(--text); padding:16px; }
+        .header { margin:-16px -16px 14px; padding:15px 16px; border-bottom:1px solid var(--line); background:rgba(11,15,25,.92); }
+        .title { font-size:14px; letter-spacing:-.01em; }
+        .badge { background:linear-gradient(135deg,#0f9f91,#16a34a); border-radius:999px; padding:4px 8px; }
+        .brand-intro { background:linear-gradient(135deg,rgba(34,199,184,.15),rgba(61,220,151,.07)); border:1px solid #2c4650; border-radius:12px; padding:12px; margin-bottom:12px; }
+        .brand-intro strong { display:block; font-size:13px; margin-bottom:4px; }
+        .brand-intro p { color:var(--muted); line-height:1.5; }
+        .compat { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
+        .compat span { background:#152a2b; border:1px solid #2c4d4d; border-radius:999px; padding:3px 7px; color:#cbd5e1; font-size:9px; }
+        .control-group { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:9px; }
+        label { color:#aeb9ca; text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+        select,input[type="text"],input[type="number"] { background:#0b101b; border-color:#303c55; border-radius:7px; min-height:32px; }
+        select:focus,input:focus { border-color:var(--cyan); box-shadow:0 0 0 2px rgba(34,199,184,.15); }
+        .slider-container input[type="range"] { accent-color:var(--cyan); }
+        .slider-val { color:#5eead4; }
+        .btn-run { min-height:42px; border-radius:10px; background:linear-gradient(135deg,#0f9f91,#16a34a); box-shadow:0 10px 24px rgba(15,159,145,.22); }
+        .btn-run:hover:not(:disabled) { background:linear-gradient(135deg,#14b8a6,#22c55e); }
+        .status-card { background:#080b12; border-color:var(--line); border-radius:10px; }
+        .stat-box { background:#111827; border-color:#2c384d; border-radius:9px; padding:9px; }
+        .plugin-footer { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); color:#778399; text-align:center; font-size:9px; line-height:1.6; }
+        .plugin-footer b { color:#cbd5e1; }
+        html.embedded body { background:#10100f; padding:13px; }
+        html.embedded .header,html.embedded .brand-intro,html.embedded .plugin-footer { display:none; }
+        html.embedded .control-group { background:#191917; border-color:#383732; border-radius:0; }
+        html.embedded select,html.embedded input[type="text"],html.embedded input[type="number"] { background:#10100f; border-color:#45433d; border-radius:0; }
+        html.embedded .btn-run { background:#ff6846; color:#17120f; border-radius:0; box-shadow:none; }
+        html.embedded .status-card,html.embedded .stat-box { border-radius:0; background:#090908; border-color:#383732; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title">
+            <span>⚡ Uniprae Silencer</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn-reload" id="btnReload" title="Reload panel">🔄</button>
+            <div class="badge">Auto-Cut</div>
+        </div>
+    </div>
+
+    <div class="brand-intro">
+        <strong>Professional Silence Editing</strong>
+        <p>Analyze speech and create a separate Silenced sequence while preserving your original timeline.</p>
+        <div class="compat"><span>Codex</span><span>Antigravity</span><span>Claude Code</span><span>Premiere Pro</span></div>
+    </div>
+
+    <!-- Source Selection -->
+    <div class="control-group">
+        <label for="sourceMode">Media Target</label>
+        <select id="sourceMode">
+            <option value="timeline" selected>🎯 Selected Source Clip / Active Timeline</option>
+            <option value="file">📂 Custom Media File from Disk</option>
+        </select>
+        <div class="file-picker-group" id="filePickerGroup">
+            <input type="text" id="filePathInput" placeholder="Select video/audio file..." readonly />
+            <button class="btn-browse" id="btnBrowse">Browse</button>
+            <input type="file" id="fileNative" style="display:none;" accept="video/*,audio/*" />
+        </div>
+    </div>
+
+    <!-- Processing Mode -->
+    <div class="control-group">
+        <label for="cutMode">Output Action</label>
+        <select id="cutMode">
+            <option value="premiere" selected>✂️ Create New “Silenced” Sequence</option>
+            <option value="render">🎞️ Render Altered Media (Single File)</option>
+        </select>
+        <div class="hint" id="modeHint">Creates and opens a separate sequence named Silenced. The current timeline remains unchanged.</div>
+    </div>
+
+    <!-- Margin Slider -->
+    <div class="control-group">
+        <label for="marginRange">Silence Margin (Padding around speech)</label>
+        <div class="slider-container">
+            <input type="range" id="marginRange" min="0.05" max="1.0" step="0.05" value="0.20" />
+            <span class="slider-val" id="marginVal">0.20s</span>
+        </div>
+        <div class="hint">Recommended: 0.15s - 0.25s for natural speech rhythm.</div>
+    </div>
+
+    <!-- Threshold Sensitivity -->
+    <div class="control-group">
+        <label for="thresholdSelect">Silence Sensitivity</label>
+        <select id="thresholdSelect">
+            <option value="" selected>Original Automatic (Recommended)</option>
+            <option value="2%">High (Quiet Voices / Sensitive - 2%)</option>
+            <option value="4%">Medium (Standard - 4%)</option>
+            <option value="8%">Low (Loud Background Noise - 8%)</option>
+        </select>
+        <div class="hint">Original Automatic matches the standalone remover. Higher percentages remove more low-level noise; use them only when the automatic result keeps background noise.</div>
+    </div>
+
+    <!-- Action Button -->
+    <button id="btnAction" class="btn-run">
+        <span id="btnIcon">✂️</span>
+        <span id="btnText">Create Silenced Sequence</span>
+    </button>
+
+    <!-- Stats Summary Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-box">
+            <div class="stat-label">Original</div>
+            <div class="stat-val" id="statOrig">--</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Clipped</div>
+            <div class="stat-val" id="statCut">--</div>
+        </div>
+        <div class="stat-box success">
+            <div class="stat-label">Saved</div>
+            <div class="stat-val" id="statSaved">--</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Cuts / Clips</div>
+            <div class="stat-val" id="statClips">--</div>
+        </div>
+    </div>
+
+    <!-- Progress & Status Card -->
+    <div class="status-card" id="statusBox">
+        Ready. Click above to remove silence from your timeline or nested sequence.
+    </div>
+
+    <div class="plugin-footer">Uniprae works with <b>Codex, Antigravity, and Claude Code</b><br>Made by <b>@Gulubba_</b></div>
+
+    <script>
+        var cs = new CSInterface();
+        var isNode = (typeof require !== 'undefined');
+        var fs = isNode ? require('fs') : null;
+        var path = isNode ? require('path') : null;
+        var os = isNode ? require('os') : null;
+        var cp = isNode ? require('child_process') : null;
+
+        var sourceMode = document.getElementById("sourceMode");
+        var filePickerGroup = document.getElementById("filePickerGroup");
+        var filePathInput = document.getElementById("filePathInput");
+        var btnBrowse = document.getElementById("btnBrowse");
+        var fileNative = document.getElementById("fileNative");
+        var cutMode = document.getElementById("cutMode");
+        var modeHint = document.getElementById("modeHint");
+        var marginRange = document.getElementById("marginRange");
+        var marginVal = document.getElementById("marginVal");
+        var thresholdSelect = document.getElementById("thresholdSelect");
+        var btnAction = document.getElementById("btnAction");
+        var btnIcon = document.getElementById("btnIcon");
+        var btnText = document.getElementById("btnText");
+        var statusBox = document.getElementById("statusBox");
+        var btnReload = document.getElementById("btnReload");
+        var statsGrid = document.getElementById("statsGrid");
+        var statOrig = document.getElementById("statOrig");
+        var statCut = document.getElementById("statCut");
+        var statSaved = document.getElementById("statSaved");
+        var statClips = document.getElementById("statClips");
+
+        var sharedCfg = (window.UnipraeConfig && window.UnipraeConfig.readConfig) ? window.UnipraeConfig.readConfig() : {};
+
+        var savedSource = sharedCfg.silenceSource || localStorage.getItem("uniprae.silencer.sourceMode");
+        var savedCutMode = sharedCfg.silenceOutput || localStorage.getItem("uniprae.silencer.cutMode");
+        var savedMargin = (sharedCfg.silenceMargin !== undefined) ? String(sharedCfg.silenceMargin) : localStorage.getItem("uniprae.silencer.v2.margin");
+        var savedThreshold = (sharedCfg.silenceThreshold !== undefined) ? sharedCfg.silenceThreshold : localStorage.getItem("uniprae.silencer.v2.threshold");
+        if (savedSource !== null && savedSource !== undefined) sourceMode.value = savedSource;
+        if (savedCutMode !== null && savedCutMode !== undefined) cutMode.value = savedCutMode;
+        if (savedMargin !== null && savedMargin !== undefined) marginRange.value = savedMargin;
+        if (savedThreshold !== null && savedThreshold !== undefined) thresholdSelect.value = savedThreshold;
+        marginVal.textContent = parseFloat(marginRange.value).toFixed(2) + "s";
+        if (sourceMode.value === "file") filePickerGroup.classList.add("visible");
+
+        // Dynamic script & engine resolution
+        var extDir = (typeof __dirname !== 'undefined') ? __dirname : "";
+        if(!extDir&&isNode)extDir=cs.getSystemPath(SystemPath.EXTENSION);
+        var scriptPath = (isNode && extDir) ? path.join(extDir, "py", "silence_remover_ppro.py") : "";
+        if (isNode && fs && !fs.existsSync(scriptPath)) {
+            var siblingScript = path.join(path.dirname(extDir), "video_silencer", "py", "silence_remover_ppro.py");
+            scriptPath = siblingScript;
+        }
+
+        var pythonCandidates = [
+            (isNode&&process.env.ADOBE_MCP_PYTHON)||"",
+            isNode?path.join(os.homedir(),"Desktop","Video silence reomver",".venv","Scripts","python.exe"):"",
+            isNode?path.join(extDir,"py",".venv","Scripts","python.exe"):"",
+            "python.exe"
+        ];
+        var pythonExe = "python.exe";
+        if (isNode && fs) {
+            for (var pi = 0; pi < pythonCandidates.length; pi++) {
+                if (fs.existsSync(pythonCandidates[pi])) {
+                    pythonExe = pythonCandidates[pi];
+                    break;
+                }
+            }
+        }
+
+        btnReload.addEventListener("click", function() {
+            window.location.reload();
+        });
+
+        marginRange.addEventListener("input", function() {
+            marginVal.textContent = parseFloat(this.value).toFixed(2) + "s";
+            localStorage.setItem("uniprae.silencer.v2.margin", this.value);
+            if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                window.UnipraeConfig.writeConfig({ silenceMargin: parseFloat(this.value) });
+            }
+        });
+
+        sourceMode.addEventListener("change", function() {
+            localStorage.setItem("uniprae.silencer.sourceMode", this.value);
+            if (this.value === "file") {
+                filePickerGroup.classList.add("visible");
+            } else {
+                filePickerGroup.classList.remove("visible");
+            }
+            if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                window.UnipraeConfig.writeConfig({ silenceSource: this.value });
+            }
+        });
+
+        cutMode.addEventListener("change", function() {
+            localStorage.setItem("uniprae.silencer.cutMode", this.value);
+            if (this.value === "premiere") {
+                modeHint.textContent = "Creates and opens a separate sequence named Silenced. The current timeline remains unchanged.";
+                btnText.textContent = "Create Silenced Sequence";
+                btnIcon.textContent = "✂️";
+            } else {
+                modeHint.textContent = "Cuts silences and encodes a new continuous video file.";
+                btnText.textContent = "Remove Silence & Render Media";
+                btnIcon.textContent = "🎞️";
+            }
+            if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                window.UnipraeConfig.writeConfig({ silenceOutput: this.value });
+            }
+        });
+
+        thresholdSelect.addEventListener("change", function() {
+            localStorage.setItem("uniprae.silencer.v2.threshold", this.value);
+            if (window.UnipraeConfig && window.UnipraeConfig.writeConfig) {
+                window.UnipraeConfig.writeConfig({ silenceThreshold: this.value });
+            }
+        });
+
+        if (cutMode.value === "render") {
+            modeHint.textContent = "Cuts silences and encodes a new continuous video file.";
+            btnText.textContent = "Remove Silence & Render Media";
+            btnIcon.textContent = "🎞️";
+        }
+
+        btnBrowse.addEventListener("click", function() {
+            fileNative.click();
+        });
+
+        fileNative.addEventListener("change", function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                var chosen = e.target.files[0];
+                if (chosen.path) {
+                    filePathInput.value = chosen.path;
+                } else {
+                    filePathInput.value = chosen.name;
+                }
+            }
+        });
+
+        function log(msg, type) {
+            var el = document.createElement("div");
+            if (type) el.className = type;
+            el.innerHTML = msg;
+            statusBox.appendChild(el);
+            statusBox.scrollTop = statusBox.scrollHeight;
+        }
+
+        function clearLog() {
+            statusBox.innerHTML = "";
+        }
+
+        function setBusy(busy, text) {
+            btnAction.disabled = busy;
+            if (busy) {
+                btnIcon.innerHTML = '<span class="spinner"></span>';
+                btnText.textContent = text || "Processing...";
+            } else {
+                btnIcon.textContent = cutMode.value === "premiere" ? "✂️" : "🎞️";
+                btnText.textContent = cutMode.value === "premiere" ? "Create Silenced Sequence" : "Remove Silence & Render Media";
+            }
+        }
+
+        btnAction.addEventListener("click", function() {
+            clearLog();
+            statsGrid.classList.remove("visible");
+
+            var margin = marginRange.value;
+            var threshold = thresholdSelect.value;
+            var mode = cutMode.value;
+
+            if (sourceMode.value === "file") {
+                var fPath = filePathInput.value;
+                if (!fPath) {
+                    log('<span class="error">✗ Please browse and select a media file first.</span>', 'error');
+                    return;
+                }
+                executeSilenceRemoval(fPath, "Custom File", margin, threshold, mode, null, null, null);
+            } else {
+                // Query timeline media (with automatic nested sequence unwrapping)
+                setBusy(true, "Scanning Timeline...");
+                log('<span class="active">●</span> Inspecting timeline & resolving clips (including nested sequences)...', 'active');
+
+                cs.evalScript("VideoSilencer.getSelectedOrTimelineMedia()", function(resStr) {
+                    var mediaData;
+                    try {
+                        mediaData = JSON.parse(resStr);
+                    } catch (e) {
+                        setBusy(false);
+                        log('<span class="error">✗ Communication error:</span> ' + resStr, 'error');
+                        return;
+                    }
+
+                    if (mediaData && mediaData.success && mediaData.mediaPath) {
+                        if (mediaData.isNested) {
+                            setBusy(false);
+                            log('<span class="error">✗ Unsafe nested sequence detected: Open the nested sequence and select its original media clip before triggering the silencer. No timeline changes were made.</span>', 'error');
+                            return;
+                        }
+                        if (mediaData.isSelection) {
+                            log('✓ Selected Clip: <strong>' + mediaData.clipName + '</strong>', 'highlight');
+                        } else {
+                            log('✓ Timeline Clip: <strong>' + mediaData.clipName + '</strong>', 'highlight');
+                        }
+
+                        executeSilenceRemoval(mediaData.mediaPath, mediaData.clipName, margin, threshold, mode, mediaData.sequenceName, mediaData.inPoint, mediaData.outPoint);
+                    } else {
+                        // Fallback: Try exporting timeline audio directly
+                        log('<span class="active">●</span> Extracting timeline audio mix fallback...', 'active');
+                        var tempDir = isNode ? os.tmpdir() : "C:\\Users\\OWNER\\AppData\\Local\\Temp";
+                        var audioExportPath = path.join(tempDir, "timeline_mix_" + Date.now() + ".wav");
+                        var audioEscaped = audioExportPath.replace(/\\/g, "\\\\");
+
+                        cs.evalScript("VideoSilencer.exportTimelineAudio('" + audioEscaped + "')", function(audStr) {
+                            var audData;
+                            try { audData = JSON.parse(audStr); } catch(e) {}
+
+                            if (audData && audData.success && audData.mediaPath) {
+                                log('✓ Exported timeline audio mix successfully.', 'highlight');
+                                executeSilenceRemoval(audData.mediaPath, audData.clipName, margin, threshold, mode, audData.sequenceName, null, null);
+                            } else {
+                                setBusy(false);
+                                log('<span class="error">✗ ' + ((mediaData && mediaData.error) || (audData && audData.error) || 'Could not resolve media.') + '</span>', 'error');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        function executeSilenceRemoval(mediaPath, clipName, margin, threshold, mode, seqName, sourceIn, sourceOut) {
+            runSilenceRemoval(mediaPath,clipName,margin,threshold,mode,seqName,null,sourceIn,sourceOut);
+        }
+        function runSilenceRemoval(mediaPath, clipName, margin, threshold, mode, seqName, target, sourceIn, sourceOut) {
+            setBusy(true, "Detecting Silence...");
+            log('<span class="active">●</span> Running AI silence detector (margin: ' + margin + 's)...', 'active');
+
+            var finalSeqName = "Silenced";
+
+            var args = [
+                scriptPath,
+                mediaPath,
+                "--margin", margin,
+                "--mode", mode,
+                "--seq-name", finalSeqName
+            ];
+
+            if (threshold) {
+                args.push("--threshold", threshold);
+            }
+            if (sourceOut !== null && sourceOut !== undefined && Number(sourceOut) > Number(sourceIn || 0)) {
+                args.push("--source-in", String(Number(sourceIn || 0)), "--source-out", String(Number(sourceOut)));
+                log('Analyzing selected source range '+Number(sourceIn || 0).toFixed(2)+'s–'+Number(sourceOut).toFixed(2)+'s only.', 'active');
+            }
+
+            if (!cp) {
+                setBusy(false);
+                log('<span class="error">✗ Node.js environment not detected in CEP.</span>', 'error');
+                return;
+            }
+
+            var startTime = Date.now();
+            cp.execFile(pythonExe, args, { windowsHide: true }, function(err, stdout, stderr) {
+                if (err) {
+                    setBusy(false);
+                    var errMsg = stderr || stdout || err.message;
+                    log('<span class="error">✗ Error processing silence:</span> ' + errMsg, 'error');
+                    return;
+                }
+
+                var resData;
+                try {
+                    resData = JSON.parse(stdout);
+                } catch (e) {
+                    setBusy(false);
+                    log('<span class="error">✗ Failed to parse engine output:</span> ' + stdout, 'error');
+                    return;
+                }
+
+                if (!resData.success) {
+                    setBusy(false);
+                    log('<span class="error">✗ ' + (resData.error || "Unknown error") + '</span>', 'error');
+                    return;
+                }
+
+                var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                log('✓ Silence analyzed in ' + elapsed + 's!', 'highlight');
+
+                // Update Stats
+                statOrig.textContent = resData.original_duration_formatted || "--";
+                statCut.textContent = resData.cut_duration_formatted || "--";
+                statSaved.textContent = (resData.silence_removed_formatted || "--") + " (" + (resData.silence_percentage || 0) + "%)";
+                statClips.textContent = resData.clip_count !== undefined ? (resData.clip_count + " clips") : "1 file";
+                statsGrid.classList.add("visible");
+
+                if (mode === "premiere") {
+                    setBusy(true, "Creating Silenced Sequence...");
+                    log('Importing retained cuts as a new Silenced sequence...', 'active');
+                    var xmlPath = String(resData.xml_path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    cs.evalScript("VideoSilencer.importCutSequenceXml('"+xmlPath+"','Silenced')", function(impRes) {
+                        setBusy(false);
+                        var impData;
+                        try {
+                            impData = JSON.parse(impRes);
+                        } catch(e) {
+                            log('<span class="error">✗ Import response error:</span> ' + impRes, 'error');
+                            return;
+                        }
+
+                        if (impData.error) {
+                            log('<span class="error">✗ ' + impData.error + '</span>', 'error');
+                        } else {
+                            log('✓ '+(impData.message || 'Silenced sequence created and opened. Original timeline unchanged.'), 'highlight');
+                        }
+                    });
+                } else {
+                    setBusy(true, "Importing Rendered File...");
+                    var outEscaped = resData.output_path.replace(/\\/g, "\\\\");
+                    cs.evalScript("VideoSilencer.importRenderedMedia('" + outEscaped + "')", function(impRes) {
+                        setBusy(false);
+                        log('<span class="highlight">🎉 Render complete!</span> Saved: ' + resData.output_path, 'highlight');
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
