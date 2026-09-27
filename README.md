@@ -97,6 +97,17 @@ Add the server entry to your `claude_desktop_config.json`:
 
 ---
 
+
+---
+
+## Extension Previews
+
+<div align="center">
+  <img src="docs/images/1.png" alt="Uniprae Adobe Premiere Pro / AE Panel" width="48%" />
+  <img src="docs/images/2.png" alt="Uniprae MCP Automation & Transcriber" width="48%" />
+</div>
+
+
 ## Panel Features
 
 ### Premiere Pro & After Effects Bridge
