@@ -103,7 +103,9 @@ Add the server entry to your `claude_desktop_config.json`:
 ## Extension Previews
 
 <div align="center">
-  <img src="docs/images/1.png" alt="Uniprae Adobe Premiere Pro / AE Panel" width="48%" />
+  <img src="docs/images/3.png" alt="Uniprae Premiere Pro Timeline & Sequence Integration" width="98%" style="margin-bottom: 8px;" />
+  <br/>
+  <img src="docs/images/1.png" alt="Uniprae Adobe Panel Controls" width="48%" />
   <img src="docs/images/2.png" alt="Uniprae MCP Automation & Transcriber" width="48%" />
 </div>
 
